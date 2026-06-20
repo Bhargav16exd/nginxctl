@@ -11,7 +11,7 @@ import (
 
 var apiConfig = `server {
     listen 80;
-    server_name {{. Domain}};
+    server_name {{.Domain}};
 
     location / {
         proxy_pass http://localhost:{{.Port}};
@@ -31,7 +31,7 @@ type ApiConfig struct {
 
 var ApiConfigTemplate = template.Must(template.New("nginxApiConfigTemplate").Parse(apiConfig))
 
-func GenerateApiConfig(projectName string, basePath string, port string, domain string) {
+func GenerateApiConfig(projectName string, basePath string, port string, domain string) bool {
 
 	payload := ApiConfig{Port: port, Domain: domain}
 
@@ -39,13 +39,19 @@ func GenerateApiConfig(projectName string, basePath string, port string, domain 
 
 	if err := ApiConfigTemplate.Execute(&buf, payload); err != nil {
 		log.Fatal("Error While Generating Template")
+		return false
 	}
 
 	path := filepath.Join(basePath, "api-"+projectName)
 
 	err := os.WriteFile(path, buf.Bytes(), 0644)
 
-	fmt.Println(err)
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+
+	return true
 }
 
 func GenerateStaticContentConfig() {

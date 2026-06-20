@@ -2,22 +2,17 @@ package main
 
 import (
 	"fmt"
+	"os"
 
-	"github.com/Bhargav16exd/serverctl/commands"
-	"github.com/Bhargav16exd/serverctl/generators"
+	tea "charm.land/bubbletea/v2"
+	"github.com/Bhargav16exd/nginxctl/ui"
 )
 
 func main() {
 
-	commands.CheckNginxInstallation()
-
-	path, err := commands.FetchNginxConfPath()
-
-	if err != nil {
-		fmt.Println(err)
+	p := tea.NewProgram(ui.InitialModel())
+	if _, err := p.Run(); err != nil {
+		fmt.Printf("Alas, there's been an error: %v", err)
+		os.Exit(1)
 	}
-
-	sitesAvailableDir, _ := commands.CheckCreateSitesDir(path)
-
-	generators.GenerateApiConfig("somename", sitesAvailableDir, "3000", "localhost")
 }

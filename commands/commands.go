@@ -8,18 +8,17 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/Bhargav16exd/serverctl/constants"
+	"github.com/Bhargav16exd/nginxctl/constants"
 )
 
 func CheckNginxInstallation() {
 
-	path, err := exec.LookPath(constants.NGINX)
+	_, err := exec.LookPath(constants.NGINX)
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Nginx is Installed", path)
 }
 
 func FetchNginxConfPath() (string, error) {
@@ -74,4 +73,8 @@ func CheckCreateSitesDir(path string) (string, string) {
 	}
 
 	return sitesAvailableDir, sitesEnabledDir
+}
+
+func ResetConfigration() {
+
 }
