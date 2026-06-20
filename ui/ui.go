@@ -216,6 +216,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.homeComponentActive = true
 					m.resetComponentActive = false
 					m.generateApiConfigComponentActive = false
+
+					for index, _ := range m.inputs {
+						m.inputs[index].Reset()
+					}
+
 					break
 				}
 
