@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
@@ -13,8 +14,12 @@ import (
 
 // model - state of ui
 type model struct {
+	configPath                       string
 	sitesAvailablePath               string
 	sitesEnabledPath                 string
+	resetConfigConsent               bool
+	resetCountdown                   int
+	resetting                        bool
 	choices                          []string
 	choicesInfo                      []string
 	cursor                           int
@@ -27,6 +32,14 @@ type model struct {
 	quitting                         bool
 }
 
+type tickMsg time.Time
+
+func tick() tea.Cmd {
+	return tea.Tick(time.Second, func(t time.Time) tea.Msg {
+		return tickMsg(t)
+	})
+}
+
 var (
 	focusedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
 	blurredStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
@@ -35,28 +48,29 @@ var (
 	blurredButton = fmt.Sprintf("%s", blurredStyle.PaddingLeft(2).Render("< Yeah this is button [Enter] it to generate Config >"))
 )
 
-func runNginxSetup() (string, string) {
+func runNginxSetup() (string, string, string) {
 
 	commands.CheckNginxInstallation()
 
-	path, err := commands.FetchNginxConfPath()
+	configPath, err := commands.FetchNginxConfPath()
 
 	if err != nil {
-		return "", ""
+		return "", "", ""
 	}
 
-	sitesAvailablePath, sitesEnabledPath := commands.CheckCreateSitesDir(path)
+	sitesAvailablePath, sitesEnabledPath := commands.CheckCreateSitesDir(configPath)
 
-	return sitesAvailablePath, sitesEnabledPath
+	return sitesAvailablePath, sitesEnabledPath, configPath
 
 }
 
 func InitialModel() model {
 
-	sitesAvailablePath, sitesEnabledPath := runNginxSetup()
+	sitesAvailablePath, sitesEnabledPath, configPath := runNginxSetup()
 
 	m := model{
 
+		configPath:         configPath,
 		sitesAvailablePath: sitesAvailablePath,
 		sitesEnabledPath:   sitesEnabledPath,
 
@@ -72,6 +86,7 @@ func InitialModel() model {
 		homeComponentActive:              true,
 		resetComponentActive:             false,
 		generateApiConfigComponentActive: false,
+		resetConfigConsent:               false,
 
 		selected: make(map[int]struct{}),
 	}
@@ -123,6 +138,33 @@ func (m model) Init() tea.Cmd {
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	switch msg := msg.(type) {
+
+	case tickMsg:
+
+		if m.resetting {
+
+			m.resetCountdown--
+
+			if m.resetCountdown <= 0 {
+
+				commands.ResetConfigration(
+					m.configPath,
+					m.sitesAvailablePath,
+					m.sitesEnabledPath,
+				)
+
+				m.resetting = false
+				m.resetConfigConsent = false
+
+				m.homeComponentActive = true
+				m.resetComponentActive = false
+				m.generateApiConfigComponentActive = false
+
+				return m, nil
+			}
+
+			return m, tick()
+		}
 
 	case tea.KeyPressMsg:
 
@@ -210,14 +252,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			if m.focusIndex == len(m.inputs) && m.generateApiConfigComponentActive {
 
-				res := generators.GenerateApiConfig(m.inputs[0].Value(), m.sitesAvailablePath, m.inputs[1].Value(), m.inputs[2].Value())
+				res := generators.GenerateApiConfig(m.inputs[0].Value(), m.sitesAvailablePath, m.sitesEnabledPath, m.inputs[1].Value(), m.inputs[2].Value())
 
 				if res {
 					m.homeComponentActive = true
 					m.resetComponentActive = false
 					m.generateApiConfigComponentActive = false
 
-					for index, _ := range m.inputs {
+					for index := range m.inputs {
 						m.inputs[index].Reset()
 					}
 
@@ -225,8 +267,15 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 
 			}
-		}
 
+		case "ctrl+s":
+
+			m.resetConfigConsent = true
+			m.resetting = true
+			m.resetCountdown = 5
+
+			return m, tick()
+		}
 	}
 
 	cmd := m.updateInputs(msg)
@@ -257,7 +306,23 @@ func (m model) View() tea.View {
 	}
 
 	if m.resetComponentActive {
-		s += BoxStyle.Render("Reseting Config")
+
+		s += WarningBoxStyle.Render("Reseting Config !")
+
+		s += "\n"
+
+		s += ResetConfigDisclaimerStyle
+
+		if m.resetting {
+			s += "\n"
+			s += WarningBoxStyle.Render("⚠ DESTRUCTIVE ACTION CONFIRMED")
+
+			s += fmt.Sprintf(
+				"\n\n  Configuration reset will begin in %d seconds...",
+				m.resetCountdown,
+			)
+		}
+
 	}
 
 	if m.generateApiConfigComponentActive {
@@ -292,8 +357,8 @@ func (m model) View() tea.View {
 
 	// The footer
 	s += "\n\n\n\n\n----------------------------------------------------------------------------------------\n"
-	s += "-------------- Press q to quit · Enter to confirm · Esc to navigate home ---------------"
-	s += "\n----------------------------------------------------------------------------------------\n"
+	s += " Press ctrl c to quit · Enter to confirm · Esc to navigate home · Arrow to navigate "
+	s += "\n----------------------------------------------------------------------------------------\n\n\n"
 
 	// Send the UI for rendering
 	return tea.NewView(s)

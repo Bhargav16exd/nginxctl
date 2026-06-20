@@ -75,6 +75,59 @@ func CheckCreateSitesDir(path string) (string, string) {
 	return sitesAvailableDir, sitesEnabledDir
 }
 
-func ResetConfigration() {
+func ResetConfigration(configPath string, sitesAvailablePath string, sitesEnabledPath string) bool {
 
+	//delete old file
+	if _, err := os.Stat(configPath); err == nil {
+		err := os.Remove(configPath)
+		if err != nil {
+			fmt.Println(err)
+			return false
+		}
+	}
+
+	//read file content re write to default config
+	buf, err := os.ReadFile("default.conf")
+
+	fmt.Println(err)
+
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+
+	err = os.WriteFile(configPath, buf, 0644)
+
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+
+	//delete
+	var configPaths = []string{sitesAvailablePath, sitesEnabledPath}
+
+	for _, path := range configPaths {
+
+		//if file does not exist
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+
+			if err := os.Mkdir(path, os.ModePerm); err != nil {
+				log.Fatal("Package Error", err)
+				return false
+			}
+
+		} else {
+			err := os.RemoveAll(path)
+			if err != nil {
+				log.Fatal("Package Error", err)
+				return false
+			}
+			if err := os.Mkdir(path, os.ModePerm); err != nil {
+				log.Fatal("Package Error", err)
+				return false
+			}
+		}
+	}
+
+	return true
 }

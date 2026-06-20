@@ -3,8 +3,8 @@ package generators
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"text/template"
 )
@@ -31,24 +31,45 @@ type ApiConfig struct {
 
 var ApiConfigTemplate = template.Must(template.New("nginxApiConfigTemplate").Parse(apiConfig))
 
-func GenerateApiConfig(projectName string, basePath string, port string, domain string) bool {
+func GenerateApiConfig(projectName string, sitesAvailablePath string, sitesEnabledPath string, port string, domain string) bool {
 
 	payload := ApiConfig{Port: port, Domain: domain}
 
 	var buf bytes.Buffer
 
 	if err := ApiConfigTemplate.Execute(&buf, payload); err != nil {
-		log.Fatal("Error While Generating Template")
+		fmt.Println(err)
 		return false
 	}
 
-	path := filepath.Join(basePath, "api-"+projectName)
+	path := filepath.Join(sitesAvailablePath, "api-"+projectName)
 
 	err := os.WriteFile(path, buf.Bytes(), 0644)
 
 	if err != nil {
 		fmt.Println(err)
 		return false
+	}
+
+	//create symlinkcj
+	_, err = exec.Command("ln", "-s", path, sitesEnabledPath).CombinedOutput()
+
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+
+	_, err = exec.Command("nginx", "-t").CombinedOutput()
+
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+
+	_, err = exec.Command("nginx", "-s", "reload").CombinedOutput()
+
+	if err != nil {
+		fmt.Println(err)
 	}
 
 	return true
