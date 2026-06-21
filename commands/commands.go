@@ -9,7 +9,12 @@ import (
 	"strings"
 
 	"github.com/Bhargav16exd/nginxctl/constants"
+
+	_ "embed"
 )
+
+//go:embed default.conf
+var defaultConf []byte
 
 func CheckNginxInstallation() {
 
@@ -82,15 +87,7 @@ func ResetConfigration(configPath string, sitesAvailablePath string, sitesEnable
 		}
 	}
 
-	//read file content re write to default config
-	buf, err := os.ReadFile("default.conf")
-
-	if err != nil {
-		fmt.Println(err)
-		return false
-	}
-
-	err = os.WriteFile(configPath, buf, 0644)
+	err := os.WriteFile(configPath, defaultConf, 0644)
 
 	if err != nil {
 		fmt.Println(err)
