@@ -62,13 +62,9 @@ func CheckCreateSitesDir(path string) (string, string) {
 
 	for _, path := range configPaths {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
-			fmt.Println(path, "does not exist")
-			fmt.Println("Creating Dir : ", path)
-
 			if err := os.Mkdir(path, os.ModePerm); err != nil {
 				log.Fatal("Package Error", err)
 			}
-
 		}
 	}
 
@@ -88,8 +84,6 @@ func ResetConfigration(configPath string, sitesAvailablePath string, sitesEnable
 
 	//read file content re write to default config
 	buf, err := os.ReadFile("default.conf")
-
-	fmt.Println(err)
 
 	if err != nil {
 		fmt.Println(err)

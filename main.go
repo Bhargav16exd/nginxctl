@@ -9,9 +9,7 @@ import (
 )
 
 func main() {
-
 	if os.Geteuid() == 0 {
-
 		p := tea.NewProgram(ui.InitialModel())
 		if _, err := p.Run(); err != nil {
 			fmt.Printf("Alas, there's been an error: %v", err)
@@ -20,5 +18,6 @@ func main() {
 
 	} else {
 		fmt.Println("THE UTILITY REQUIRES SUDO PERMISSIONS, PLEASE GIVE SUDO PERMISSIONS")
+		os.Exit(1)
 	}
 }
