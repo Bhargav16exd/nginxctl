@@ -4,6 +4,9 @@ Nginx Config is always been a tedious tasks, finding out paths, editing configs 
 
 To solve this issue, here i have came up with a simple TUI based utility that helps individual to setup reverse proxy in Nginx with just few clicks. 
 
+## User Guide and Documentation
+https://www.nginxctl.com/
+
 ## More info :  
 https://app.notion.com/p/Projects-38272e56834880a7b108d3d162b37ceb?source=copy_link
 
